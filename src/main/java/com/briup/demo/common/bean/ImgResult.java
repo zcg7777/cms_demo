@@ -3,6 +3,7 @@ package com.briup.demo.common.bean;
 import java.util.Arrays;
 
 public class ImgResult {
+	
 	private int  errno;//错误代码
     private String[] data;//存放上传的图片的路径
     
