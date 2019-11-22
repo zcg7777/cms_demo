@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.briup.demo.dao.IUserMapper">
+	<resultMap type="User" id="UserResult">
+		<id column="id" property="id"></id>
+		<result column="account" property="account"/>
+		<result column="password" property="password"/>
+		<result column="nickname" property="nickname"/>
+		<result column="age" property="age"/>
+		<result column="role" property="role"/>
+		<result column="third_id" property="thirdId"/>
+	</resultMap>
+	
+	<select id="findUserByAccount" parameterType="String" resultMap="UserResult">
+		select *
+		from user
+		where account=#{acc}
+	</select>
+	
+	<select id="findUserById" parameterType="long" resultMap="UserResult">
+		select *
+		from user
+		where id=#{id}
+	</select>
+	<select id="findUserByThirdId" parameterType="String" resultMap="UserResult">
+		select *
+		from user
+		where third_id=#{tid}
+	</select>
+	
+	<update id="updateName" parameterType="User">
+		update user
+		set nickname=#{nickname}
+		where id=#{id}
+	</update>
+	
+	<insert id="insertUserThird" parameterType="User">
+		insert into user(nickname,third_id)
+		values(#{nickname},#{thirdId})
+	</insert>
+	
+	<insert id="insertUser" parameterType="User">
+		insert into user(account,password,nickname)
+		values(#{account},#{password},#{nickname})
+	</insert>
+	
+	<insert id="insertUserLike">
+		insert into user_likes(date,state,user_id,article_id)
+		values(#{param3},1,#{param2},#{param1})
+	</insert>
+	
+	<update id="updateUserLike">
+		update user_likes
+		set state=#{param3}
+		where user_id=#{param2}
+			and article_id=#{param1}
+	</update>
+	
+	<update id="updateUser" parameterType="User">
+		update user 
+		set account=#{account},nickname=#{nickname},password=#{password}
+		where id=#{id}
+	</update>
+	
+	<insert id="insertUserReport">
+		insert into user_report(reportDate,reportType,reportContent,state,user_id,article_id)
+		values(now(),#{param3},#{param4},#{1},#{param2},#{param1})
+	</insert>
+</mapper>
+
+
+
+
+
+
+

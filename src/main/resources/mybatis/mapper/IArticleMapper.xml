@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.briup.demo.dao.IArticleMapper">
+	
+	<resultMap type="Article" id="ArticleMap">
+		<id column="id" property="id"></id>
+		<result column="title" property="title"/>
+		<result column="content" property="content"/>
+		<result column="releaseDate" property="releaseDate"/>
+		<result column="clickTimes" property="clickTimes"/>
+		<result column="state" property="state"/>
+		<result column="summary" property="summary"/>
+		<result column="type" property="type"/>
+		<result column="backgroundMusicUrl" property="backgroundMusicUrl"/>
+		<result column="videoUrl" property="videoUrl"/>
+		<result column="pictureUrls" property="pictureUrls"/>
+	</resultMap>
+	
+	<select id="findArticlesByClickTimes" resultMap="ArticleMap">
+		select *
+		from article
+		where state=1
+			and id not in (
+				select article_id 
+				from user_report 
+				where user_id=#{param2}
+			)
+		order by clickTimes desc 
+		limit #{param1}
+	</select>
+	
+	<resultMap type="Category" id="CategoryResultWithOutCates">
+		<id column="cid" property="id"></id>
+		<result column="cname" property="name"/>
+		<result column="cdesc" property="description"/>
+	</resultMap>
+	
+	<select id="findCategroyById" parameterType="int" resultMap="CategoryResultWithOutCates">
+		select id cid,name cname,description cdesc 
+		from category
+		where id=#{id}
+	</select>
+	
+	<resultMap type="Article" id="ArticleMapWithCategory" extends="ArticleMap">
+		<association property="category" select="findCategroyById" column="category_id"></association>
+		<association property="category" select="com.briup.dao.ICategoryMapper.findCategroyById" column="category_id"></association>
+	</resultMap>
+	
+	根据userId和二级栏目id查询 所有资讯【用户未举报】
+	<select id="findArticlesByCategoryIdTwo" resultMap="ArticleMap">
+		select * 
+		from article 
+		where state = 1 
+			and category_id=#{param1}
+			and id not in (
+				select article_id 
+				from user_report 
+				where user_id=#{param2}
+			)
+	</select>
+	
+	根据userId和一级栏目id查询 该cateId下所有资讯【用户未举报】
+	<select id="findArticlesByCategoryIdOne" resultMap="ArticleMap">
+		select * 
+		from article 
+		where state = 1 
+			and category_id in (
+				select id from category 
+				where parent_id=#{param1}
+			) 
+			and id not in (
+				select article_id from user_report 
+				where user_id=#{param2}
+			)
+	</select>
+	
+	<!-- 根据咨询id获取 资讯对象,用户举报的也能找得到 -->
+	<select id="findArticlesById" resultMap="ArticleMap">
+		select * 
+		from article
+		where id=#{param1} 
+		
+		where state = 1 
+			and id=#{param1}
+			and id not in (
+				select article_id from user_report 
+				where user_id=#{param2}
+			)
+	</select>
+	
+	<!-- 此处代码不完整 -->
+	<resultMap type="Article" id="ArticlesResultWithUserAndCategory" extends="ArticleMapWithCategory">
+		<association property="user" column="user_id" select="com.briup.dao.IUserMapper.findUserById"></association>
+	</resultMap>
+	
+	<select id="findArticlesByIdWithUserAndCategory" resultMap="ArticlesResultWithUserAndCategory">
+		select * 
+		from article 
+		where state = 1 
+			and id=#{param1}
+			and id not in (
+				select article_id from user_report 
+				where user_id=#{param2}
+			)
+	</select>
+	
+	<!-- 根据咨询状态 查找所有资讯，包含user和category -->
+	<select id="findArticlesByState" parameterType="int" resultMap="ArticlesResultWithUserAndCategory">
+		select *
+		from article
+		where state=#{id}
+	</select>
+	
+	<select id="getArticleLikeTimesById" parameterType="long" resultType="int">
+		SELECT count(*) 
+		FROM user_likes
+		where article_id=#{id}
+			and state=1
+	</select>
+	
+	<select id="getArticleCollectionTimesById" parameterType="long" resultType="int">
+		SELECT count(*) 
+		FROM user_collection
+		where article_id=#{id}
+			and state=1
+	</select>
+	
+	<update id="updateArticleClickTimes">
+		update article 
+		set clickTimes=clickTimes+#{param2} 
+		where id=#{param1}
+	</update>
+	
+	<!-- 找所有用户，其对指定资讯点过赞 -->
+	<select id="findAllUserIdLikeArticleByAid" parameterType="long" resultType="long">
+		select user_id
+		from user_likes
+		where article_id=#{aid}
+	</select>
+	
+	<select id="findLikeStateByAidUid" resultType="int">
+		select state
+		from user_likes
+		where article_id=#{param1}
+			and user_id=#{param2}
+	</select>
+	
+	<select id="findReportStateByAidUid" resultType="int">
+		select state
+		from user_report
+		where article_id=#{param1}
+			and user_id=#{param2}
+	</select>
+	
+	<!-- 发布资讯 -->
+	<insert id="insertArticle">
+		insert into article(title,summary,content,releaseDate,clickTimes,backgroundMusicUrl,pictureUrls,videoUrl,type,state,user_id,category_id)
+		values(#{param1.title},#{param1.summary},#{param1.content},#{param1.releaseDate},0,#{param1.backgroundMusicUrl},#{param1.pictureUrls},#{param1.videoUrl},#{param1.type},#{param1.state},#{param2},#{param3})
+	</insert>
+	
+	<!-- 按照userId查找，且排除state为4的【已经被删除】，并按照发布时间近远来排序 -->
+	<select id="findArticlesByUserId" parameterType="long" resultMap="ArticleMapWithCategory">
+		select *
+		from article
+		where user_id=#{id}
+			and state!=4
+		order by releaseDate desc 
+	</select>
+	
+	<select id="findReportArticlesByUserId" parameterType="long" resultMap="ArticlesResultWithUserAndCategory">
+		select a.*
+		from user_report ur,article a
+		where ur.article_id=a.id
+			and ur.user_id=#{id}
+	</select>
+	
+	<!--根据咨询id删除资讯【修改状态为4】 -->
+	<update id="deleteArticleById" parameterType="int">
+		update article
+		set state=4
+		where id=#{id}
+	</update>
+	
+	<update id="updateArticleCategory">
+		update article
+		set category_id=#{param2}
+		where id=#{param1}
+	</update>
+	
+	<update id="updateArticleState">
+		update article
+		set state=#{param2}
+		where id=#{param1}
+	</update>
+	
+	<select id="findUserReportsByAidUid" resultType="UserReport">
+		select * 
+		from user_report
+		where article_id=#{param1} 
+			and user_id=#{param2}
+	</select>
+	
+</mapper>
+
+
+
+
+
+
+
